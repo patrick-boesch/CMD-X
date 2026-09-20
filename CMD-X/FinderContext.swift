@@ -14,7 +14,11 @@ enum FinderContext {
             let subrole = stringAttribute(window, kAXSubroleAttribute)
             if subrole == kAXDialogSubrole || subrole == kAXSystemDialogSubrole { return false }
             if let modal = attribute(window, kAXModalAttribute) as? Bool, modal { return false }
-            if let sheets = attribute(window, kAXSheetsAttribute) as? [AXUIElement], !sheets.isEmpty { return false }
+            // Attached sheets are child accessibility elements with the sheet role.
+            if let children = attribute(window, kAXChildrenAttribute) as? [AXUIElement],
+               children.contains(where: { stringAttribute($0, kAXRoleAttribute) == kAXSheetRole }) {
+                return false
+            }
         }
 
         let fileRoles: Set<String> = ["AXBrowser", "AXOutline", "AXTable", "AXList", "AXScrollArea", "AXLayoutArea"]
