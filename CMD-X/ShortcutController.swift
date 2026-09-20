@@ -7,7 +7,28 @@ final class ShortcutController {
     private(set) var items: [CutItem] = []
     private(set) var isMoving = false
     private(set) var isCapturing = false
+    enum AccessState: String {
+        case checking, needsAccessibility, tapUnavailable, ready
+    }
+
+    private(set) var accessState: AccessState = .checking
     var isEnabled: Bool { tap != nil && AXIsProcessTrusted() }
+
+    var accessMessage: String {
+        switch accessState {
+        case .checking: return "Tastaturzugriff wird geprüft …"
+        case .needsAccessibility: return "macOS hat dieser laufenden App keine Bedienungshilfen-Rechte erteilt."
+        case .tapUnavailable: return "Bedienungshilfen sind freigegeben, aber macOS konnte den Tastaturfilter nicht starten. Bitte CMD-X neu starten."
+        case .ready: return "Bereit: ⌘X und ⌘V sind für Dateien im Finder aktiviert."
+        }
+    }
+
+    private func setAccessState(_ state: AccessState) {
+        guard accessState != state else { return }
+        accessState = state
+        NSLog("[CMD-X] keyboard access state=%@", state.rawValue)
+        onChange?()
+    }
 
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
@@ -19,7 +40,11 @@ final class ShortcutController {
     private var generation = UUID()
 
     func start() {
-        guard tap == nil, AXIsProcessTrusted() else { onChange?(); return }
+        guard tap == nil else { return }
+        guard AXIsProcessTrusted() else {
+            setAccessState(.needsAccessibility)
+            return
+        }
         let mask = (CGEventMask(1) << CGEventType.keyDown.rawValue) | (CGEventMask(1) << CGEventType.keyUp.rawValue)
         guard let newTap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
             options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, context in
@@ -27,7 +52,7 @@ final class ShortcutController {
                 let controller = Unmanaged<ShortcutController>.fromOpaque(context).takeUnretainedValue()
                 return controller.handle(type: type, event: event)
             }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
-            onChange?()
+            setAccessState(.tapUnavailable)
             return
         }
         tap = newTap
@@ -38,7 +63,7 @@ final class ShortcutController {
         timer.tolerance = 0.05
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
-        onChange?()
+        setAccessState(.ready)
     }
 
     func stop() {
@@ -50,6 +75,7 @@ final class ShortcutController {
         tap = nil
         remappedCutKey = false
         swallowedKeys.removeAll()
+        setAccessState(AXIsProcessTrusted() ? .checking : .needsAccessibility)
         if !isMoving { reset() }
     }
 

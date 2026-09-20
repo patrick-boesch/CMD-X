@@ -4,8 +4,8 @@ Eine kleine native macOS-Menüleisten-App für **⌘X → ⌘V im Finder**. Für
 
 ## Verwendung
 
-1. `CMD-X.xcodeproj` im vorhandenen Xcode öffnen, Scheme **CMD-X**, Ziel **My Mac**.
-2. App starten und unter **Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen** freigeben. CMD-X erkennt die Freigabe automatisch.
+1. `CMD-X.xcodeproj` im vorhandenen Xcode öffnen, Scheme **CMD-X**, Ziel **My Mac**. Im Target unter **Signing & Capabilities** das eigene **Team** auswählen; **Automatically manage signing** ist aktiviert.
+2. App starten und unter **Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen** freigeben. Das Einrichtungsfenster zeigt, ob die Freigabe für den laufenden Prozess erkannt wird.
 3. Dateien oder Ordner im Finder auswählen und **⌘X** drücken.
 4. Zielordner im Finder öffnen und **⌘V** drücken. Beim ersten Verschieben die **Finder-Steuerung** erlauben.
 
@@ -13,9 +13,23 @@ Eine kleine native macOS-Menüleisten-App für **⌘X → ⌘V im Finder**. Für
 | --- | --- |
 | Grauer Ring | Keine Dateien zum Ausschneiden vorgemerkt |
 | Gefüllter Kreis in Akzentfarbe | Auswahl ist zum Verschieben vorgemerkt |
-| Orange gepunkteter Kreis | Auswahl wird übernommen oder Finder verschiebt |
+| Orange gefüllter Kreis | Auswahl wird übernommen oder Finder verschiebt |
 
 Das Menü zeigt die Anzahl vorgemerkter Elemente. **Ausschneiden aufheben** beendet die Vormerkung; die Dateien bleiben an ihrem Ort und die normale Kopie bleibt in der Zwischenablage. Optional kann CMD-X beim Anmelden starten. Für dauerhafte Nutzung die App an einem festen Ort, z. B. Programme, ablegen und dort erneut freigeben.
+
+## Freigabe aktiviert, Tastenkürzel trotzdem inaktiv
+
+Das Einrichtungsfenster ist über das Menü oder durch erneutes Öffnen der bereits laufenden App erreichbar. Es zeigt den exakten App-Pfad und unterscheidet fehlende Bedienungshilfen-Rechte von einem fehlgeschlagenen Tastaturfilter.
+
+Bei einem veralteten CMD-X-Eintrag in den Bedienungshilfen:
+1. Die neue App mit dem eigenen Team signieren und starten.
+2. **Diese App im Finder zeigen** markiert das tatsächlich laufende App-Bundle.
+3. Den bisherigen CMD-X-Eintrag unter Bedienungshilfen entfernen, genau dieses Bundle über **+** hinzufügen und aktivieren.
+4. CMD-X neu starten; im Fenster muss **Bereit** bzw. im Log `keyboard access state=ready` stehen.
+
+Die ursprüngliche Projektversion erzwang Ad-hoc-Signierung. Nach Änderungen kann dabei eine Freigabe zu einem früheren Build gehören. Signaturidentitäten dienen macOS zur Wiedererkennung von Code; siehe [Apples Code-Signing-Dokumentation](https://developer.apple.com/library/archive/technotes/tn2206/_index.html). Der konkrete alte Berechtigungseintrag auf dem Test-Mac wurde hier nicht ausgelesen.
+
+Das Menüleisten-Symbol wird mit fester Größe direkt gezeichnet. `isVisible=true` besagt, dass das Status-Item eingeschaltet ist; bei Platzmangel oder einem Menüleisten-Manager kann es trotzdem außerhalb des sichtbaren Bereichs liegen. Deshalb ist die Einrichtung zusätzlich als normales Fenster erreichbar. Es gibt keine zweite automatische AX-Systemaufforderung neben diesem Fenster.
 
 ## Verhalten und Grenzen
 
@@ -33,7 +47,7 @@ Das Menü zeigt die Anzahl vorgemerkter Elemente. **Ausschneiden aufheben** been
 
 ## Projekt
 
-AppKit / Swift 5-Modus, Deployment Target macOS 13. Ad-hoc-Signierung für lokale Entwicklung, Hardened Runtime und Apple-Events-Entitlement; keine App Sandbox. Für Distribution sind eigene Signierung und Notarisierung nötig.
+AppKit / Swift 5-Modus, Deployment Target macOS 13. Automatische **Apple-Development-Signierung** mit dem lokal ausgewählten Team, Hardened Runtime und Apple-Events-Entitlement; keine App Sandbox. Für Distribution sind eigene Signierung und Notarisierung nötig.
 
 Build-Produkte, Zwischenprodukte und Derived Data liegen unter **`Build/` im Projektordner**. Das geteilte Workspace-Setting setzt den Xcode-Derived-Data-Pfad; für CLI-Aufrufe zusätzlich immer `-derivedDataPath "$PWD/Build/DerivedData"` verwenden. Keine GitHub Actions.
 

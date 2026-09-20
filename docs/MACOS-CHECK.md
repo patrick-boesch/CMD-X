@@ -1,8 +1,10 @@
 # Einmalige Prüfung auf dem Mac
 
+Für Laufzeittests im Xcode-Target das eigene Team auswählen und die App mit **Apple Development** signieren. Ein Build mit `CODE_SIGNING_ALLOWED=NO` unten ist nur eine Compilerprüfung, keine Grundlage für Berechtigungstests. Alte Ad-hoc-Build-Einträge in Bedienungshilfen einmal durch das neue signierte App-Bundle ersetzen.
+
 Mit Testdaten, nicht mit Originalen prüfen:
 
-1. Bedienungshilfen zunächst ablehnen: Menüleiste erklärt fehlende Freigabe; normale Tastenkürzel funktionieren. Danach erlauben: ohne Neustart aktiv.
+1. Bedienungshilfen zunächst ablehnen: Menüleiste erklärt fehlende Freigabe; normale Tastenkürzel funktionieren. Danach erlauben: Erkennung im Statusfenster prüfen; bei veraltetem Eintrag die genaue App erneut hinzufügen und neu starten.
 2. Eine Datei, mehrere Dateien und eine Mischung aus Ordnern/Dateien ausschneiden. Vor ⌘V bleiben alle Quellen bestehen, Kreis gefüllt. In anderen Ordner einfügen: Inhalt vollständig am Ziel, Quellen verschoben, Ring leer.
 3. Finder-Ansichten Symbole/Liste/Spalten/Galerie, Schreibtisch, mehrere Fenster/Tabs: Einfügeort ist der aktive Finder-Ort. Unbekannter Fokus darf nicht abgefangen werden.
 4. Datei umbenennen, Finder-Suche, „Gehe zum Ordner“, TextEdit: normales Text-⌘X/⌘V. Ohne ausgeschnittene Dateien bleibt ⌘C/⌘V im Finder unverändert.
@@ -11,6 +13,8 @@ Mit Testdaten, nicht mit Originalen prüfen:
 7. Gleiches Verzeichnis, schreibgeschütztes Ziel, abgelehnte Finder-Automation, entfernte/ersetzte Quelldatei: keine fälschliche Erfolgsmeldung, keine Datenverluste.
 8. Unicode, Anführungszeichen, Backslash und Zeilenumbruch in Dateinamen. Externes Laufwerk und iCloud-Platzhalter separat prüfen. Symlinks/Finder-Aliasse ausdrücklich vor produktiver Nutzung prüfen.
 9. ⌘V halten oder mehrfach drücken: kein zweiter Transfer. Leeren Zustand, Aufheben, Neustart und optionalen Autostart prüfen.
+
+10. Nur ein Einrichtungsfenster, keine zusätzliche AX-Systemaufforderung beim Öffnen der Einstellungen. Bei `needsAccessibility` muss die laufende App neu freigegeben werden; `tapUnavailable` darf nicht als fehlende AX-Freigabe dargestellt werden. Auch bei verdecktem Menüleisten-Symbol die App erneut öffnen und das Statusfenster erreichen.
 
 ## Kopierbarer Codex-Auftrag
 
