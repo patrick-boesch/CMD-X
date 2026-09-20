@@ -1,36 +1,255 @@
 // !$*UTF8*$!
 {
-archiveVersion = 1;
-classes = {};
-objectVersion = 56;
-objects = {
-000000000000000000000064 = {isa = PBXBuildFile; fileRef = 0000000000000000000000C8; };
-0000000000000000000000C8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-000000000000000000000065 = {isa = PBXBuildFile; fileRef = 0000000000000000000000C9; };
-0000000000000000000000C9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-000000000000000000000066 = {isa = PBXBuildFile; fileRef = 0000000000000000000000CA; };
-0000000000000000000000CA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderContext.swift; sourceTree = "<group>"; };
-000000000000000000000067 = {isa = PBXBuildFile; fileRef = 0000000000000000000000CB; };
-0000000000000000000000CB = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderMover.swift; sourceTree = "<group>"; };
-000000000000000000000068 = {isa = PBXBuildFile; fileRef = 0000000000000000000000CC; };
-0000000000000000000000CC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutController.swift; sourceTree = "<group>"; };
-0000000000000000000000D2 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-0000000000000000000000D3 = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "CMD-X.entitlements"; sourceTree = "<group>"; };
-0000000000000000000000DC = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CMD-X.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-000000000000000000000001 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1660; TargetAttributes = {000000000000000000000002 = {CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = 000000000000000000000014; compatibilityVersion = "Xcode 14.0"; developmentRegion = de; hasScannedForEncodings = 0; knownRegions = (de, en, Base); mainGroup = 000000000000000000000003; productRefGroup = 000000000000000000000005; projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000002); };
-000000000000000000000002 = {isa = PBXNativeTarget; buildConfigurationList = 000000000000000000000015; buildPhases = (00000000000000000000000A,00000000000000000000000B,00000000000000000000000C); buildRules = (); dependencies = (); name = "CMD-X"; productName = "CMD-X"; productReference = 0000000000000000000000DC; productType = "com.apple.product-type.application"; };
-000000000000000000000003 = {isa = PBXGroup; children = (000000000000000000000004,000000000000000000000005); sourceTree = "<group>"; };
-000000000000000000000004 = {isa = PBXGroup; children = (0000000000000000000000C8,0000000000000000000000C9,0000000000000000000000CA,0000000000000000000000CB,0000000000000000000000CC,0000000000000000000000D2,0000000000000000000000D3); path = "CMD-X"; sourceTree = "<group>"; };
-000000000000000000000005 = {isa = PBXGroup; children = (0000000000000000000000DC); name = Products; sourceTree = "<group>"; };
-00000000000000000000000A = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000064,000000000000000000000065,000000000000000000000066,000000000000000000000067,000000000000000000000068); runOnlyForDeploymentPostprocessing = 0; };
-00000000000000000000000B = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-00000000000000000000000C = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-00000000000000000000001E = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; MACOSX_DEPLOYMENT_TARGET = 13.0; SDKROOT = macosx; SWIFT_VERSION = 5.0; SYMROOT = "$(SRCROOT)/Build/Products"; OBJROOT = "$(SRCROOT)/Build/Intermediates.noindex"; CLANG_MODULE_CACHE_PATH = "$(SRCROOT)/Build/ModuleCache.noindex"; DEBUG_INFORMATION_FORMAT = dwarf; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; ONLY_ACTIVE_ARCH = YES; }; name = Debug; };
-00000000000000000000001F = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; MACOSX_DEPLOYMENT_TARGET = 13.0; SDKROOT = macosx; SWIFT_VERSION = 5.0; SYMROOT = "$(SRCROOT)/Build/Products"; OBJROOT = "$(SRCROOT)/Build/Intermediates.noindex"; CLANG_MODULE_CACHE_PATH = "$(SRCROOT)/Build/ModuleCache.noindex"; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
-000000000000000000000020 = {isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_ENTITLEMENTS = "CMD-X/CMD-X.entitlements"; CODE_SIGN_IDENTITY = "Apple Development"; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; ENABLE_APP_SANDBOX = NO; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = "CMD-X/Info.plist"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks"); MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = "de.patrickboesch.cmd-x"; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = NO; }; name = Debug; };
-000000000000000000000021 = {isa = XCBuildConfiguration; buildSettings = { CODE_SIGN_ENTITLEMENTS = "CMD-X/CMD-X.entitlements"; CODE_SIGN_IDENTITY = "Apple Development"; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; ENABLE_APP_SANDBOX = NO; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = "CMD-X/Info.plist"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks"); MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = "de.patrickboesch.cmd-x"; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = NO; }; name = Release; };
-000000000000000000000014 = {isa = XCConfigurationList; buildConfigurations = (00000000000000000000001E,00000000000000000000001F); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-000000000000000000000015 = {isa = XCConfigurationList; buildConfigurations = (000000000000000000000020,000000000000000000000021); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-};
-rootObject = 000000000000000000000001;
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		000000000000000000000064 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000C8 /* main.swift */; };
+		000000000000000000000065 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000C9 /* AppDelegate.swift */; };
+		000000000000000000000066 /* FinderContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000CA /* FinderContext.swift */; };
+		000000000000000000000067 /* FinderMover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000CB /* FinderMover.swift */; };
+		000000000000000000000068 /* ShortcutController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000CC /* ShortcutController.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0000000000000000000000C8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		0000000000000000000000C9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		0000000000000000000000CA /* FinderContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderContext.swift; sourceTree = "<group>"; };
+		0000000000000000000000CB /* FinderMover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderMover.swift; sourceTree = "<group>"; };
+		0000000000000000000000CC /* ShortcutController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutController.swift; sourceTree = "<group>"; };
+		0000000000000000000000D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		0000000000000000000000D3 /* CMD-X.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "CMD-X.entitlements"; sourceTree = "<group>"; };
+		0000000000000000000000DC /* CMD-X.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CMD-X.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		00000000000000000000000B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		000000000000000000000003 = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000004 /* CMD-X */,
+				000000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		000000000000000000000004 /* CMD-X */ = {
+			isa = PBXGroup;
+			children = (
+				0000000000000000000000C8 /* main.swift */,
+				0000000000000000000000C9 /* AppDelegate.swift */,
+				0000000000000000000000CA /* FinderContext.swift */,
+				0000000000000000000000CB /* FinderMover.swift */,
+				0000000000000000000000CC /* ShortcutController.swift */,
+				0000000000000000000000D2 /* Info.plist */,
+				0000000000000000000000D3 /* CMD-X.entitlements */,
+			);
+			path = "CMD-X";
+			sourceTree = "<group>";
+		};
+		000000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0000000000000000000000DC /* CMD-X.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		000000000000000000000002 /* CMD-X */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000015 /* Build configuration list for PBXNativeTarget "CMD-X" */;
+			buildPhases = (
+				00000000000000000000000A /* Sources */,
+				00000000000000000000000B /* Frameworks */,
+				00000000000000000000000C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "CMD-X";
+			productName = "CMD-X";
+			productReference = 0000000000000000000000DC /* CMD-X.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		000000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1660;
+				TargetAttributes = {
+					000000000000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 000000000000000000000014 /* Build configuration list for PBXProject "CMD-X" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = de;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				de,
+				en,
+				Base,
+			);
+			mainGroup = 000000000000000000000003;
+			productRefGroup = 000000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				000000000000000000000002 /* CMD-X */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		00000000000000000000000C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		00000000000000000000000A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000064 /* main.swift in Sources */,
+				000000000000000000000065 /* AppDelegate.swift in Sources */,
+				000000000000000000000066 /* FinderContext.swift in Sources */,
+				000000000000000000000067 /* FinderMover.swift in Sources */,
+				000000000000000000000068 /* ShortcutController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		00000000000000000000001E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_MODULE_CACHE_PATH = "$(SRCROOT)/Build/ModuleCache.noindex";
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				OBJROOT = "$(SRCROOT)/Build/Intermediates.noindex";
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				SYMROOT = "$(SRCROOT)/Build/Products";
+			};
+			name = Debug;
+		};
+		00000000000000000000001F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_MODULE_CACHE_PATH = "$(SRCROOT)/Build/ModuleCache.noindex";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				OBJROOT = "$(SRCROOT)/Build/Intermediates.noindex";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				SYMROOT = "$(SRCROOT)/Build/Products";
+			};
+			name = Release;
+		};
+		000000000000000000000020 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "CMD-X/CMD-X.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A7NWHU2LD9;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "CMD-X/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.patrickboesch.cmd-x";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+			};
+			name = Debug;
+		};
+		000000000000000000000021 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "CMD-X/CMD-X.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A7NWHU2LD9;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "CMD-X/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "de.patrickboesch.cmd-x";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		000000000000000000000014 /* Build configuration list for PBXProject "CMD-X" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00000000000000000000001E /* Debug */,
+				00000000000000000000001F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000015 /* Build configuration list for PBXNativeTarget "CMD-X" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000020 /* Debug */,
+				000000000000000000000021 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 000000000000000000000001 /* Project object */;
 }
