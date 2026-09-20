@@ -12,7 +12,10 @@ final class ShortcutController {
     }
 
     private(set) var accessState: AccessState = .checking
-    var isEnabled: Bool { tap != nil && AXIsProcessTrusted() }
+    var isEnabled: Bool {
+        guard let tap else { return false }
+        return AXIsProcessTrusted() && CGEvent.tapIsEnabled(tap: tap)
+    }
 
     var accessMessage: String {
         switch accessState {
@@ -35,12 +38,36 @@ final class ShortcutController {
     private var timer: Timer?
     private var clipboardVersion = NSPasteboard.general.changeCount
     private var captureDeadline: TimeInterval = 0
-    private var remappedCutKey = false
-    private var swallowedKeys = Set<Int64>()
+    private static let forwardedEventTag: Int64 = 0x434D4458
+    private enum RouteAction {
+        case pending
+        case forward(Int64?)
+        case consume
+    }
+    private final class KeyRoute {
+        let key: Int64
+        let pid: pid_t
+        let generation: UUID
+        var events: [CGEvent]
+        var action: RouteAction = .pending
+        var released = false
+        init(key: Int64, pid: pid_t, generation: UUID, event: CGEvent) {
+            self.key = key
+            self.pid = pid
+            self.generation = generation
+            events = [event]
+        }
+    }
+    private var routedKeys: [Int64: KeyRoute] = [:]
     private var generation = UUID()
 
     func start() {
-        guard tap == nil else { return }
+        if let tap {
+            guard AXIsProcessTrusted() else { stop(); return }
+            CGEvent.tapEnable(tap: tap, enable: true)
+            setAccessState(CGEvent.tapIsEnabled(tap: tap) ? .ready : .tapUnavailable)
+            return
+        }
         guard AXIsProcessTrusted() else {
             setAccessState(.needsAccessibility)
             return
@@ -73,8 +100,7 @@ final class ShortcutController {
         if let tap { CFMachPortInvalidate(tap) }
         source = nil
         tap = nil
-        remappedCutKey = false
-        swallowedKeys.removeAll()
+        routedKeys.removeAll()
         setAccessState(AXIsProcessTrusted() ? .checking : .needsAccessibility)
         if !isMoving { reset() }
     }
@@ -93,48 +119,92 @@ final class ShortcutController {
 
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            NSLog("[CMD-X] event tap disabled (%@); enabling again", String(type.rawValue))
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
         }
-        let key = event.getIntegerValueField(.keyboardEventKeycode)
-        if type == .keyUp {
-            if key == 7, remappedCutKey {
-                remappedCutKey = false
-                event.setIntegerValueField(.keyboardEventKeycode, value: 8)
-                event.keyboardSetUnicodeString(stringLength: 1, unicodeString: [UniChar(99)])
-            } else if swallowedKeys.remove(key) != nil { return nil }
+        if event.getIntegerValueField(.eventSourceUserData) == Self.forwardedEventTag {
             return Unmanaged.passUnretained(event)
         }
+        guard type == .keyDown || type == .keyUp else { return Unmanaged.passUnretained(event) }
+        let key = event.getIntegerValueField(.keyboardEventKeycode)
+        if let route = routedKeys[key], !(route.released && type == .keyDown) {
+            if type == .keyUp { route.released = true }
+            switch route.action {
+            case .pending:
+                if let copy = event.copy() { route.events.append(copy) }
+                return nil
+            case .forward(let replacement):
+                // A held cut key must not repeatedly replace our captured clipboard.
+                if type == .keyDown && replacement != nil { return nil }
+                if type == .keyUp { routedKeys.removeValue(forKey: key) }
+                remap(event, key: replacement)
+                return Unmanaged.passUnretained(event)
+            case .consume:
+                if type == .keyUp { routedKeys.removeValue(forKey: key) }
+                return nil
+            }
+        }
         guard type == .keyDown else { return Unmanaged.passUnretained(event) }
-        if swallowedKeys.contains(key) { return nil }
-        if key == 7, remappedCutKey { return nil }
         let modifiers = event.flags.intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift])
-        // Copying anywhere cancels cut intent even before Finder refreshes the clipboard.
         if key == 8, modifiers == .maskCommand { reset(); return Unmanaged.passUnretained(event) }
         let isCut = key == 7 && modifiers == .maskCommand
         let isPaste = key == 9 && (modifiers == .maskCommand || modifiers == [.maskCommand, .maskAlternate])
-        guard isCut || isPaste else { return Unmanaged.passUnretained(event) }
+        guard isCut || isPaste,
+              let app = NSWorkspace.shared.frontmostApplication,
+              app.bundleIdentifier == "com.apple.finder",
+              let copy = event.copy() else { return Unmanaged.passUnretained(event) }
+        // An ordinary paste needs no AX inspection or interception.
+        if isPaste && items.isEmpty && !isCapturing && !isMoving { return Unmanaged.passUnretained(event) }
+        let route = KeyRoute(key: key, pid: app.processIdentifier, generation: generation, event: copy)
+        routedKeys[key] = route
+        NSLog("[CMD-X] Finder shortcut received: %@", isCut ? "cut" : "paste")
+        // Finder must receive control again before we ask its main thread about AX.
+        // No Accessibility RPC or clipboard/file read runs in the event-tap callback.
+        DispatchQueue.main.async { [weak self] in self?.processShortcut(route, isCut: isCut) }
+        return nil
+    }
+
+    private func processShortcut(_ route: KeyRoute, isCut: Bool) {
+        guard tap != nil,
+              NSWorkspace.shared.frontmostApplication?.processIdentifier == route.pid,
+              route.generation == generation else {
+            NSLog("[CMD-X] deferred shortcut cancelled: application or clipboard intent changed")
+            resolve(route, action: .consume)
+            return
+        }
+        let focus = FinderContext.inspectFileFocus()
+        NSLog("[CMD-X] Finder focus: %@", focus.detail)
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == route.pid,
+              route.generation == generation else {
+            resolve(route, action: .consume)
+            return
+        }
+        guard focus.isFileView else {
+            // Replay the original down/up sequence for text editing and unknown focus.
+            resolve(route, action: .forward(nil))
+            return
+        }
         pollClipboard()
-        guard FinderContext.hasFileFocus() else { return Unmanaged.passUnretained(event) }
-        if isMoving || (isPaste && isCapturing) {
-            swallowedKeys.insert(key)
-            return nil
+        if isMoving || (!isCut && isCapturing) {
+            resolve(route, action: .consume)
+            return
         }
         if isCut {
             reset()
             isCapturing = true
             clipboardVersion = NSPasteboard.general.changeCount
             captureDeadline = ProcessInfo.processInfo.systemUptime + 1.5
-            // Let Finder produce its native file clipboard, including multiple items.
-            // This modifies the original event, with no synthetic-event recursion.
-            event.setIntegerValueField(.keyboardEventKeycode, value: 8)
-            event.keyboardSetUnicodeString(stringLength: 1, unicodeString: [UniChar(99)])
-            remappedCutKey = true
-            DispatchQueue.main.async { [weak self] in self?.onChange?() }
-            return Unmanaged.passUnretained(event)
+            NSLog("[CMD-X] requesting native Finder copy")
+            onChange?()
+            resolve(route, action: .forward(8))
+            return
         }
-        guard !items.isEmpty else { return Unmanaged.passUnretained(event) }
-        swallowedKeys.insert(key)
+        guard !items.isEmpty else {
+            resolve(route, action: .forward(nil))
+            return
+        }
+        resolve(route, action: .consume)
         isMoving = true
         let currentGeneration = generation
         let movingItems = items
@@ -161,7 +231,29 @@ final class ShortcutController {
                 if let message = result.message { self.onError?(message) }
             }
         }
-        return nil
+    }
+
+    private func resolve(_ route: KeyRoute, action: RouteAction) {
+        route.action = action
+        if case .forward(let replacement) = action {
+            for event in route.events {
+                if replacement != nil && event.type == .keyDown &&
+                    event.getIntegerValueField(.keyboardEventAutorepeat) != 0 { continue }
+                remap(event, key: replacement)
+                event.setIntegerValueField(.eventSourceUserData, value: Self.forwardedEventTag)
+                event.postToPid(route.pid)
+            }
+        }
+        route.events.removeAll()
+        if route.released, routedKeys[route.key] === route {
+            routedKeys.removeValue(forKey: route.key)
+        }
+    }
+
+    private func remap(_ event: CGEvent, key: Int64?) {
+        guard let key else { return }
+        event.setIntegerValueField(.keyboardEventKeycode, value: key)
+        event.keyboardSetUnicodeString(stringLength: 1, unicodeString: [UniChar(99)])
     }
 
     private func pollClipboard() {
@@ -178,8 +270,10 @@ final class ShortcutController {
                 var seen = Set<URL>()
                 items = urls.filter { seen.insert($0).inserted }.compactMap { CutItem(url: $0) }
                 if items.count != seen.count { items = [] }
+                NSLog("[CMD-X] Finder clipboard captured: %d file URL(s), %d cut item(s)", urls.count, items.count)
                 onChange?()
             } else if ProcessInfo.processInfo.systemUptime > captureDeadline {
+                NSLog("[CMD-X] Finder copy timed out: clipboard did not change")
                 reset()
             }
         } else if !items.isEmpty && pasteboard.changeCount != clipboardVersion {
