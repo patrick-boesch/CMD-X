@@ -9,12 +9,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let cancelItem = NSMenuItem(title: "Ausschneiden aufheben", action: #selector(cancelCut), keyEquivalent: "")
-    private let permissionItem = NSMenuItem(title: "Bedienungshilfen erlauben …", action: #selector(enableAccessibility), keyEquivalent: "")
+    private let permissionItem = NSMenuItem(title: "Zugriff anfordern …", action: #selector(enableAccessibility), keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Beim Anmelden starten", action: #selector(toggleLogin), keyEquivalent: "")
     private let quitItem = NSMenuItem(title: "CMD-X beenden", action: #selector(quit), keyEquivalent: "q")
     private var permissionTimer: Timer?
     private var setupWindow: NSWindow?
     private var setupStatus: NSTextField?
+    private var setupShortcut: NSTextField?
+    private let diagnosticItem = NSMenuItem(title: "Diagnose kopieren", action: #selector(copyDiagnostics), keyEquivalent: "")
     private let setupItem = NSMenuItem(title: "Einrichtung und Status …", action: #selector(showSetup), keyEquivalent: "")
     private var lastError: String?
     private let errorItem = NSMenuItem(title: "Letzten Hinweis anzeigen …", action: #selector(showLastError), keyEquivalent: "")
@@ -53,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         cancelItem.isEnabled = false
         errorItem.isHidden = true
-        for item in [setupItem, cancelItem, errorItem, permissionItem, loginItem] {
+        for item in [setupItem, diagnosticItem, cancelItem, errorItem, permissionItem, loginItem] {
             item.target = self
             menu.addItem(item)
         }
@@ -84,9 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         controller.start()
         refresh()
         NSLog("[CMD-X] keyboard setup returned; enabled=%@", String(controller.isEnabled))
+        NSLog("[CMD-X] %@", controller.diagnosticReport)
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             guard let self else { return }
-            if !AXIsProcessTrusted() { self.controller.stop() }
             if !self.controller.isEnabled { self.controller.start() }
             self.refresh()
         }
@@ -146,8 +148,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.title = ""
         statusItem.button?.contentTintColor = nil
         setupStatus?.stringValue = controller.accessMessage
+        setupShortcut?.stringValue = controller.lastShortcut
         cancelItem.isEnabled = active && !busy
-        permissionItem.isHidden = controller.accessState != .needsAccessibility
+        permissionItem.isHidden = controller.accessState != .needsAccessibility && controller.accessState != .needsPostEventAccess
+        diagnosticItem.isEnabled = !controller.isMoving
         errorItem.isHidden = lastError == nil
         quitItem.isEnabled = !controller.isMoving
     }
@@ -156,10 +160,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func quit() { NSApp.terminate(nil) }
 
     @objc private func enableAccessibility() {
-        // One route only: do not stack the AX system alert on top of our own UI.
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
-        }
+        guard didStartServices else { return }
+        controller.requestAccess()
+        refresh()
+    }
+
+    @objc private func copyDiagnostics() {
+        guard didStartServices, !controller.isMoving else { return }
+        // Capture state before replacing the clipboard; copying a report is an
+        // explicit new copy operation and must cancel any pending cut intent.
+        let report = controller.diagnosticReport
+        controller.cancel()
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(report, forType: .string)
+        NSLog("[CMD-X] %@", report)
     }
 
     @objc private func toggleLogin() {
@@ -214,12 +228,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let status = NSTextField(wrappingLabelWithString: "Tastaturzugriff wird geprüft …")
             status.font = .boldSystemFont(ofSize: 13)
             setupStatus = status
+            let shortcut = NSTextField(wrappingLabelWithString: controller.lastShortcut)
+            shortcut.textColor = .secondaryLabelColor
+            setupShortcut = shortcut
             let explanation = NSTextField(wrappingLabelWithString:
-                "Ist CMD-X bereits aktiviert, kann der Eintrag zu einem älteren Build gehören. Entferne den bisherigen CMD-X-Eintrag unter Bedienungshilfen und füge über + genau die unten gezeigte App erneut hinzu. Starte CMD-X danach neu.")
+                "Klicke auf „Zugriff anfordern“ und bestätige die Freigabe von macOS. Unter macOS 27 heißt der Bereich „Gerätesteuerung und Datenzugriff“, auf älteren Versionen „Bedienungshilfen“. Wenn danach ein weiterer Zugriff fehlt, klicke erneut. Bei Problemen nach einem Finder-⌘X die Diagnose über das Kreismenü kopieren.")
             let path = NSTextField(wrappingLabelWithString: Bundle.main.bundleURL.path)
             path.isSelectable = true
             path.textColor = .secondaryLabelColor
-            let privacy = NSButton(title: "Bedienungshilfen öffnen", target: self, action: #selector(enableAccessibility))
+            let privacy = NSButton(title: "Zugriff anfordern", target: self, action: #selector(enableAccessibility))
             let reveal = NSButton(title: "Diese App im Finder zeigen", target: self, action: #selector(revealRunningApp))
             let retry = NSButton(title: "Erneut prüfen", target: self, action: #selector(recheckAccess))
             let buttons = NSStackView(views: [privacy, reveal])
@@ -227,7 +244,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let note = NSTextField(wrappingLabelWithString:
                 "Die separate Finder-Steuerung wird erst beim ersten Einfügen angefragt. Der Kreis ist bei einer vorgemerkten Auswahl farbig gefüllt.")
             note.textColor = .secondaryLabelColor
-            let stack = NSStackView(views: [heading, status, explanation, path, buttons, retry, note])
+            let stack = NSStackView(views: [heading, status, shortcut, explanation, path, buttons, retry, note])
             stack.orientation = .vertical
             stack.alignment = .leading
             stack.spacing = 14
@@ -239,6 +256,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
                 stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 24),
                 status.widthAnchor.constraint(equalTo: stack.widthAnchor),
+                shortcut.widthAnchor.constraint(equalTo: stack.widthAnchor),
                 explanation.widthAnchor.constraint(equalTo: stack.widthAnchor),
                 path.widthAnchor.constraint(equalTo: stack.widthAnchor),
                 note.widthAnchor.constraint(equalTo: stack.widthAnchor)
@@ -259,7 +277,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func recheckAccess() {
         guard didStartServices else { return }
-        if !AXIsProcessTrusted() { controller.stop() }
         controller.start()
         refresh()
     }

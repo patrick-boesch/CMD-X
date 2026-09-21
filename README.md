@@ -5,7 +5,7 @@ Eine kleine native macOS-Menüleisten-App für **⌘X → ⌘V im Finder**. Für
 ## Verwendung
 
 1. `CMD-X.xcodeproj` im vorhandenen Xcode öffnen, Scheme **CMD-X**, Ziel **My Mac**. Im Target unter **Signing & Capabilities** das eigene **Team** auswählen; **Automatically manage signing** ist aktiviert.
-2. App starten und unter **Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen** freigeben. Das Einrichtungsfenster zeigt, ob die Freigabe für den laufenden Prozess erkannt wird.
+2. App starten und im Einrichtungsfenster **Zugriff anfordern** klicken. Die Systemanfrage bestätigen; falls danach noch eine Freigabe fehlt, erneut klicken. Der Bereich heißt unter macOS 27 **Gerätesteuerung und Datenzugriff**, auf älteren Versionen **Bedienungshilfen**. Das Einrichtungsfenster zeigt die tatsächlich erkannten Rechte.
 3. Dateien oder Ordner im Finder auswählen und **⌘X** drücken.
 4. Zielordner im Finder öffnen und **⌘V** drücken. Beim ersten Verschieben die **Finder-Steuerung** erlauben.
 
@@ -19,13 +19,11 @@ Das Menü zeigt die Anzahl vorgemerkter Elemente. **Ausschneiden aufheben** been
 
 ## Freigabe aktiviert, Tastenkürzel trotzdem inaktiv
 
-Das Einrichtungsfenster ist über das Menü oder durch erneutes Öffnen der bereits laufenden App erreichbar. Es zeigt den exakten App-Pfad und unterscheidet fehlende Bedienungshilfen-Rechte von einem fehlgeschlagenen Tastaturfilter.
+Das Einrichtungsfenster ist über das Menü oder durch erneutes Öffnen der bereits laufenden App erreichbar. Es zeigt den exakten App-Pfad und unterscheidet fehlende AX-Rechte, fehlenden PostEvent-Zugriff und einen inaktiven Tastaturfilter. Die Systemanfrage erfolgt nur nach Klick auf **Zugriff anfordern**; die App öffnet nicht gleichzeitig die Einstellungen.
 
-Bei einem veralteten CMD-X-Eintrag in den Bedienungshilfen:
-1. Die neue App mit dem eigenen Team signieren und starten.
-2. **Diese App im Finder zeigen** markiert das tatsächlich laufende App-Bundle.
-3. Den bisherigen CMD-X-Eintrag unter Bedienungshilfen entfernen, genau dieses Bundle über **+** hinzufügen und aktivieren.
-4. CMD-X neu starten; im Fenster muss **Bereit** bzw. im Log `keyboard access state=ready` stehen.
+Wenn ⌘X weiterhin nur piept: eine Testdatei markieren, einmal ⌘X drücken und dann im Kreismenü **Diagnose kopieren** wählen. Der Bericht enthält Betriebssystem, App-Pfad, beide Freigaben, Tap-Status, Tastenkürzel-Empfang und letzten Finder-Fokus/Copy-Schritt. Er enthält keine Dateinamen oder Texteingaben. Das Kopieren der Diagnose ersetzt die Zwischenablage und hebt eine vorgemerkte Auswahl auf; während eines Transfers ist es gesperrt. Der aktuelle Bericht beginnt mit `CMD-X Diagnose: permission-flow-2`.
+
+Bei nachweislich veraltetem Freigabeeintrag kann **Diese App im Finder zeigen** helfen, exakt das laufende Bundle erneut freizugeben. Ein weiterer Reset auf Verdacht ist kein Diagnoseschritt.
 
 Die ursprüngliche Projektversion erzwang Ad-hoc-Signierung. Nach Änderungen kann dabei eine Freigabe zu einem früheren Build gehören. Signaturidentitäten dienen macOS zur Wiedererkennung von Code; siehe [Apples Code-Signing-Dokumentation](https://developer.apple.com/library/archive/technotes/tn2206/_index.html). Der konkrete alte Berechtigungseintrag auf dem Test-Mac wurde hier nicht ausgelesen.
 

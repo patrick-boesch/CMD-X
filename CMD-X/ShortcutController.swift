@@ -8,20 +8,21 @@ final class ShortcutController {
     private(set) var isMoving = false
     private(set) var isCapturing = false
     enum AccessState: String {
-        case checking, needsAccessibility, tapUnavailable, ready
+        case checking, needsAccessibility, needsPostEventAccess, tapUnavailable, ready
     }
 
     private(set) var accessState: AccessState = .checking
     var isEnabled: Bool {
         guard let tap else { return false }
-        return AXIsProcessTrusted() && CGEvent.tapIsEnabled(tap: tap)
+        return AXIsProcessTrusted() && CGPreflightPostEventAccess() && CGEvent.tapIsEnabled(tap: tap)
     }
 
     var accessMessage: String {
         switch accessState {
         case .checking: return "Tastaturzugriff wird geprüft …"
         case .needsAccessibility: return "macOS hat dieser laufenden App keine Bedienungshilfen-Rechte erteilt."
-        case .tapUnavailable: return "Bedienungshilfen sind freigegeben, aber macOS konnte den Tastaturfilter nicht starten. Bitte CMD-X neu starten."
+        case .needsPostEventAccess: return "macOS hat Tastatureingriffe für diese App noch nicht freigegeben."
+        case .tapUnavailable: return "Die Freigaben sind vorhanden, aber der Tastaturfilter ist nicht aktiv."
         case .ready: return "Bereit: ⌘X und ⌘V sind für Dateien im Finder aktiviert."
         }
     }
@@ -31,6 +32,47 @@ final class ShortcutController {
         accessState = state
         NSLog("[CMD-X] keyboard access state=%@", state.rawValue)
         onChange?()
+    }
+
+    private(set) var lastShortcut = "Noch kein ⌘X/⌘V empfangen."
+    private(set) var lastFocus = "Noch nicht geprüft."
+    private(set) var lastOperation = "Noch keine Dateiaktion."
+    private var shortcutCount = 0
+
+    var diagnosticReport: String {
+        let tapEnabled = tap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false
+        return """
+        CMD-X Diagnose: permission-flow-2
+        macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        App: \(Bundle.main.bundleURL.path)
+        Bundle: \(Bundle.main.bundleIdentifier ?? "unknown")
+        PID: \(ProcessInfo.processInfo.processIdentifier)
+        AX trusted: \(AXIsProcessTrusted())
+        PostEvent allowed: \(CGPreflightPostEventAccess())
+        Event tap created: \(tap != nil)
+        Event tap enabled: \(tapEnabled)
+        State: \(accessState.rawValue)
+        Shortcuts received: \(shortcutCount)
+        Last shortcut: \(lastShortcut)
+        Last Finder focus: \(lastFocus)
+        Last operation: \(lastOperation)
+        Pending items: \(items.count)
+        Capturing: \(isCapturing); moving: \(isMoving)
+        """
+    }
+
+    // Explicit user action only. Let macOS show its own consent UI; never also
+    // open System Settings or request a second permission in the same action.
+    func requestAccess() {
+        if !CGPreflightPostEventAccess() {
+            NSLog("[CMD-X] requesting PostEvent consent")
+            _ = CGRequestPostEventAccess()
+        } else if !AXIsProcessTrusted() {
+            NSLog("[CMD-X] requesting AX consent")
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+        }
+        start()
     }
 
     private var tap: CFMachPort?
@@ -62,14 +104,19 @@ final class ShortcutController {
     private var generation = UUID()
 
     func start() {
-        if let tap {
-            guard AXIsProcessTrusted() else { stop(); return }
-            CGEvent.tapEnable(tap: tap, enable: true)
-            setAccessState(CGEvent.tapIsEnabled(tap: tap) ? .ready : .tapUnavailable)
+        guard AXIsProcessTrusted() else {
+            if tap != nil { stop() }
+            setAccessState(.needsAccessibility)
             return
         }
-        guard AXIsProcessTrusted() else {
-            setAccessState(.needsAccessibility)
+        guard CGPreflightPostEventAccess() else {
+            if tap != nil { stop() }
+            setAccessState(.needsPostEventAccess)
+            return
+        }
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: true)
+            setAccessState(CGEvent.tapIsEnabled(tap: tap) ? .ready : .tapUnavailable)
             return
         }
         let mask = (CGEventMask(1) << CGEventType.keyDown.rawValue) | (CGEventMask(1) << CGEventType.keyUp.rawValue)
@@ -82,15 +129,20 @@ final class ShortcutController {
             setAccessState(.tapUnavailable)
             return
         }
+        guard let newSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, newTap, 0) else {
+            CFMachPortInvalidate(newTap)
+            setAccessState(.tapUnavailable)
+            return
+        }
         tap = newTap
-        source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, newTap, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        source = newSource
+        CFRunLoopAddSource(CFRunLoopGetMain(), newSource, .commonModes)
         CGEvent.tapEnable(tap: newTap, enable: true)
         let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in self?.pollClipboard() }
         timer.tolerance = 0.05
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
-        setAccessState(.ready)
+        setAccessState(CGEvent.tapIsEnabled(tap: newTap) ? .ready : .tapUnavailable)
     }
 
     func stop() {
@@ -101,7 +153,9 @@ final class ShortcutController {
         source = nil
         tap = nil
         routedKeys.removeAll()
-        setAccessState(AXIsProcessTrusted() ? .checking : .needsAccessibility)
+        if !AXIsProcessTrusted() { setAccessState(.needsAccessibility) }
+        else if !CGPreflightPostEventAccess() { setAccessState(.needsPostEventAccess) }
+        else { setAccessState(.checking) }
         if !isMoving { reset() }
     }
 
@@ -150,6 +204,10 @@ final class ShortcutController {
         if key == 8, modifiers == .maskCommand { reset(); return Unmanaged.passUnretained(event) }
         let isCut = key == 7 && modifiers == .maskCommand
         let isPaste = key == 9 && (modifiers == .maskCommand || modifiers == [.maskCommand, .maskAlternate])
+        if isCut || isPaste {
+            shortcutCount += 1
+            lastShortcut = "\(isCut ? "⌘X" : "⌘V") – \(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown")"
+        }
         guard isCut || isPaste,
               let app = NSWorkspace.shared.frontmostApplication,
               app.bundleIdentifier == "com.apple.finder",
@@ -174,6 +232,7 @@ final class ShortcutController {
             return
         }
         let focus = FinderContext.inspectFileFocus()
+        lastFocus = focus.detail
         NSLog("[CMD-X] Finder focus: %@", focus.detail)
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == route.pid,
               route.generation == generation else {
@@ -195,6 +254,7 @@ final class ShortcutController {
             isCapturing = true
             clipboardVersion = NSPasteboard.general.changeCount
             captureDeadline = ProcessInfo.processInfo.systemUptime + 1.5
+            lastOperation = "Finder copy requested"
             NSLog("[CMD-X] requesting native Finder copy")
             onChange?()
             resolve(route, action: .forward(8))
@@ -270,9 +330,11 @@ final class ShortcutController {
                 var seen = Set<URL>()
                 items = urls.filter { seen.insert($0).inserted }.compactMap { CutItem(url: $0) }
                 if items.count != seen.count { items = [] }
+                lastOperation = "Finder clipboard: \(urls.count) URLs, \(items.count) cut items"
                 NSLog("[CMD-X] Finder clipboard captured: %d file URL(s), %d cut item(s)", urls.count, items.count)
                 onChange?()
             } else if ProcessInfo.processInfo.systemUptime > captureDeadline {
+                lastOperation = "Finder copy timed out; clipboard unchanged"
                 NSLog("[CMD-X] Finder copy timed out: clipboard did not change")
                 reset()
             }
